@@ -28,8 +28,10 @@ make stop       # end of session, otherwise billing keeps running
 which can also be run on its own. The playbook is idempotent: it skips
 `stack.sh` when the stack is already up. Add `YES=1` to skip the prompts.
 
-Once DevStack answers, fill in `~/.config/openstack/clouds.yaml` from
-`clouds.yaml.example`, then `make os-init && make os-apply`.
+Credentials live in `clouds.yaml` at the root of the project, written from
+`.env` by the scripts and gitignored. `OS_CLIENT_CONFIG_FILE` points the
+openstack client and the Terraform provider at it, so nothing is stored in the
+home directory.
 
 ## Requirements
 
@@ -41,7 +43,8 @@ Once DevStack answers, fill in `~/.config/openstack/clouds.yaml` from
 
 | File | Holds |
 |---|---|
-| `.env` | resource group, VM name, admin user, Horizon port |
+| `.env` | resource group, VM name, admin user, Horizon port, lab password |
+| `clouds.yaml` | generated from `.env`, never edited by hand |
 | `terraform/azure/terraform.tfvars` | subscription, region, VM size, SSH source |
 | `ansible/site.yml` | DevStack branch, passwords, floating range |
 

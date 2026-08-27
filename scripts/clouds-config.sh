@@ -6,7 +6,7 @@ source "$(dirname "$0")/lib.sh"
 load_env
 require_vars DEVSTACK_PASSWORD HORIZON_PORT
 
-target="$HOME/.config/openstack/clouds.yaml"
+target="$OS_CLIENT_CONFIG_FILE"
 marker="# managed by Simplon-OpenStack"
 
 if [[ -f "$target" ]] && ! grep -qF "$marker" "$target"; then

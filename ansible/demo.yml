@@ -1,0 +1,107 @@
+- name: Prepare the Terraform demo on the lab host
+  hosts: devstack
+  become: true
+
+  vars:
+    devstack_user: stack
+    devstack_home: /opt/stack
+    demo_dir: /opt/stack/lab-terraform
+
+  tasks:
+    # Keystone advertises its catalog on the private address, so the API is
+    # only usable from the host itself. Terraform therefore runs there too.
+    - name: Add the HashiCorp apt key
+      ansible.builtin.get_url:
+        url: https://apt.releases.hashicorp.com/gpg
+        dest: /usr/share/keyrings/hashicorp.asc
+        mode: "0644"
+
+    - name: Add the HashiCorp repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/usr/share/keyrings/hashicorp.asc]
+          https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main
+        filename: hashicorp
+
+    - name: Install Terraform
+      ansible.builtin.apt:
+        name: terraform
+        update_cache: true
+
+    - name: Create the demo directory
+      ansible.builtin.file:
+        path: "{{ demo_dir }}"
+        state: directory
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0755"
+
+    # The instance gets the workstation public key rather than one generated
+    # here, so ssh -J reaches it straight from the laptop.
+    - name: Upload the workstation public key
+      ansible.builtin.copy:
+        src: "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/id_rsa.pub"
+        dest: "{{ demo_dir }}/authorized_key.pub"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0644"
+
+    # Only the .tf sources: copying the whole folder would drag in a local
+    # .terraform, and forcing 0644 strips the exec bit off the provider binary.
+    - name: Copy the Terraform sources to the host
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ demo_dir }}/"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0644"
+      with_fileglob:
+        - ../terraform/openstack/*.tf
+
+    - name: Write the Terraform variables
+      ansible.builtin.copy:
+        dest: "{{ demo_dir }}/terraform.tfvars"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0600"
+        content: |
+          cloud_name        = "lab"
+          instance_name     = "web-01"
+          flavor_name       = "m1.tiny"
+          image_name        = "cirros-0.6.3-x86_64-disk"
+          network_name      = "private"
+          public_key_path   = "{{ demo_dir }}/authorized_key.pub"
+          allowed_ssh_cidr  = "172.24.4.0/24"
+          allowed_http_cidr = "172.24.4.0/24"
+          admin_hint        = "{{ ansible_user }}@{{ inventory_hostname }}"
+
+    - name: Create the config directory
+      ansible.builtin.file:
+        path: "{{ devstack_home }}/.config/openstack"
+        state: directory
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0700"
+
+    # Same file the workstation uses, but pointing at the local API rather
+    # than through a tunnel.
+    - name: Write clouds.yaml for the stack user
+      ansible.builtin.copy:
+        dest: "{{ devstack_home }}/.config/openstack/clouds.yaml"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0600"
+        content: |
+          clouds:
+            lab:
+              auth:
+                auth_url: http://{{ private_ip }}/identity
+                username: admin
+                password: {{ lookup('ansible.builtin.env', 'DEVSTACK_PASSWORD') | mandatory }}
+                project_name: admin
+                user_domain_name: Default
+                project_domain_name: Default
+              region_name: RegionOne
+              interface: public
+              identity_api_version: 3
+      no_log: true
