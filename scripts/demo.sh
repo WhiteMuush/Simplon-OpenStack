@@ -10,6 +10,13 @@ require_vars DEVSTACK_PASSWORD HORIZON_PORT
 [[ -f "$INVENTORY" ]] || die "inventory is missing, run: make inventory"
 
 here="$(dirname "$0")"
+
+# Two runs at once fight over the Terraform state and leave the second one
+# reading a half destroyed stack.
+lock="${TMPDIR:-/tmp}/simplon-openstack-demo.lock"
+exec 9>"$lock"
+flock -n 9 || die "another demo is already running"
+
 host="$(awk '/ansible_user=/ {print $1; exit}' "$INVENTORY")"
 user="$(awk -F'ansible_user=' '/ansible_user=/ {print $2; exit}' "$INVENTORY")"
 
@@ -35,7 +42,8 @@ step "5. Where it actually runs"
 on_host "OS_CLOUD=lab openstack hypervisor list"
 
 step "6. Logging into the instance from here"
-fip="$(in_stack 'terraform output -raw floating_ip')"
+fip="$(in_stack 'terraform output -raw floating_ip' | tr -d '\r' | tr -d '[:space:]')"
+[[ -n "$fip" ]] || die "no floating IP in the Terraform state, rerun: make demo"
 
 # Terraform returns as soon as Nova reports ACTIVE, well before CirrOS has
 # started sshd. Retry rather than fail on the first refusal.
