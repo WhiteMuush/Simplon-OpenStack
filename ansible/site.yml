@@ -36,9 +36,14 @@
           slow, use the CirrOS image only.
       when: not kvm_available
 
-    - name: Install git
+    # acl matters here: without it, becoming the unprivileged stack user falls
+    # back to a chmod syntax that does not exist on Linux, and every task
+    # running as that user fails.
+    - name: Install git and acl
       ansible.builtin.apt:
-        name: git
+        name:
+          - git
+          - acl
         update_cache: true
 
     # The allowed sizes top out at 8 GB, which is DevStack's floor. Without
@@ -89,10 +94,11 @@
         version: "{{ devstack_version }}"
 
     - name: Render local.conf
-      become_user: "{{ devstack_user }}"
       ansible.builtin.template:
         src: templates/local.conf.j2
         dest: "{{ devstack_home }}/devstack/local.conf"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
         mode: "0644"
 
     - name: Check whether the stack is already up
