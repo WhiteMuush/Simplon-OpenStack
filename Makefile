@@ -6,7 +6,7 @@ SHELL := /bin/bash
 S := ./scripts
 
 .PHONY: help env one-shot preflight host inventory install reset connect \
-        status start stop demo demo-clean tunnel os-apply os-destroy destroy fmt clean
+        status start stop demo demo-clean tunnel k8s k8s-clean os-apply os-destroy destroy fmt clean
 
 help: ## Show this help
 	@grep -hE '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -65,6 +65,14 @@ os-apply: ## Create the instances, networks and security groups
 
 os-destroy: ## Remove every OpenStack resource
 	@$(S)/openstack-destroy.sh
+
+## Kubernetes
+
+k8s: ## Single node k3s inside the lab, created with Terraform
+	@$(S)/k8s.sh
+
+k8s-clean: ## Destroy the Kubernetes node
+	@$(S)/k8s-clean.sh
 
 ## Housekeeping
 

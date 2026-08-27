@@ -1,0 +1,89 @@
+- name: Prepare the Kubernetes lab on the OpenStack host
+  hosts: devstack
+  become: true
+
+  vars:
+    devstack_user: stack
+    devstack_home: /opt/stack
+    k8s_dir: /opt/stack/lab-kubernetes
+    image_name: ubuntu-22.04
+    image_url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+    image_file: /opt/stack/images/jammy-server-cloudimg-amd64.img
+
+  tasks:
+    # CirrOS is 50 MB and cannot run a container runtime, so the catalog needs
+    # a real distribution before any Kubernetes node can exist.
+    - name: Create the image directory
+      ansible.builtin.file:
+        path: "{{ devstack_home }}/images"
+        state: directory
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0755"
+
+    - name: Download the Ubuntu cloud image
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.get_url:
+        url: "{{ image_url }}"
+        dest: "{{ image_file }}"
+        mode: "0644"
+
+    - name: Look for the image in Glance
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.command: openstack image show {{ image_name }}
+      environment:
+        OS_CLOUD: lab
+      register: image_check
+      changed_when: false
+      failed_when: false
+
+    - name: Upload the image to Glance
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.command: >-
+        openstack image create {{ image_name }}
+        --disk-format qcow2 --container-format bare
+        --file {{ image_file }} --public
+      environment:
+        OS_CLOUD: lab
+      when: image_check.rc != 0
+
+    - name: Create the Kubernetes directory
+      ansible.builtin.file:
+        path: "{{ k8s_dir }}"
+        state: directory
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0755"
+
+    - name: Upload the workstation public key
+      ansible.builtin.copy:
+        src: "{{ lookup('ansible.builtin.env', 'HOME') }}/.ssh/id_rsa.pub"
+        dest: "{{ k8s_dir }}/authorized_key.pub"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0644"
+
+    - name: Copy the Terraform sources to the host
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ k8s_dir }}/"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0644"
+      with_fileglob:
+        - ../terraform/kubernetes/*.tf
+
+    - name: Write the Terraform variables
+      ansible.builtin.copy:
+        dest: "{{ k8s_dir }}/terraform.tfvars"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0600"
+        content: |
+          cloud_name      = "lab"
+          node_name       = "k3s-01"
+          flavor_name     = "m1.small"
+          image_name      = "{{ image_name }}"
+          network_name    = "private"
+          public_key_path = "{{ k8s_dir }}/authorized_key.pub"
+          allowed_cidr    = "172.24.4.0/24"
