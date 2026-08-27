@@ -17,9 +17,17 @@
     devstack_timeout: 5400
 
   tasks:
-    - name: Report whether the CPU exposes virtualization extensions
+    # ansible_processor_flags is not collected on every platform, so read
+    # /proc/cpuinfo instead of trusting the fact to exist.
+    - name: Look for CPU virtualization extensions
+      ansible.builtin.command: grep -cE '(vmx|svm)' /proc/cpuinfo
+      register: cpu_virt
+      changed_when: false
+      failed_when: false
+
+    - name: Record KVM availability
       ansible.builtin.set_fact:
-        kvm_available: "{{ 'vmx' in ansible_processor_flags or 'svm' in ansible_processor_flags }}"
+        kvm_available: "{{ (cpu_virt.stdout | default('0') | int) > 0 }}"
 
     - name: Warn when KVM is missing
       ansible.builtin.debug:
