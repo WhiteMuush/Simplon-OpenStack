@@ -17,6 +17,6 @@ az vm create \
   --generate-ssh-keys
 
 # Safety net in case we forget to deallocate.
-az vm auto-shutdown --resource-group "$RG" --name "$VM" --time 2000
+az vm auto-shutdown --resource-group "$RG" --name "$VM" --time "$SHUTDOWN_TIME"
 
 az vm show -d -g "$RG" -n "$VM" --query publicIps -o tsv

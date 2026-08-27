@@ -4,18 +4,31 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
+# Settings live in .env, copied from .env.example. The values below are only
+# fallbacks used when a key is missing.
+-include .env
+export
+
 RG      ?= mpetitRG
 VM      ?= devstack
 LOC     ?= francecentral
 ADMIN   ?= azureuser
+SIZE    ?= Standard_D4s_v4
 TF      := terraform -chdir=terraform
 
-.PHONY: help vm-create vm-ip vm-status connect vm-start vm-stop vm-delete \
+.PHONY: help env vm-create vm-ip vm-status connect vm-start vm-stop vm-delete \
         check-nested tf-init tf-plan tf-apply tf-destroy tf-fmt os-status clean
 
 help: ## Show this help
+	@echo "Target VM: $(VM) in $(RG), $(LOC), $(SIZE)"
+	@echo
 	@grep -hE '^[a-z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+
+## Setup
+
+env: ## Create .env from .env.example if missing
+	@[[ -f .env ]] && echo ".env already exists" || { cp .env.example .env; echo ".env created, edit it if needed"; }
 
 ## Azure host VM
 

@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
-# Shared variables, sourced by the other scripts.
+# Loads .env, then falls back to defaults for anything left unset.
 
-export RG="mpetitRG"
-export LOC="francecentral"
-export VM="devstack"
-export SIZE="Standard_D4s_v4"
-export ADMIN="azureuser"
-export DISK_GB="64"
+ENV_FILE="$(dirname "$0")/../.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
+export RG="${RG:-mpetitRG}"
+export LOC="${LOC:-francecentral}"
+export VM="${VM:-devstack}"
+export ADMIN="${ADMIN:-azureuser}"
+export SIZE="${SIZE:-Standard_D4s_v4}"
+export DISK_GB="${DISK_GB:-64}"
+export SHUTDOWN_TIME="${SHUTDOWN_TIME:-2000}"
+export HORIZON_PORT="${HORIZON_PORT:-8080}"

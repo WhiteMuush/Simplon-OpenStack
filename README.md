@@ -14,13 +14,22 @@ terraform/   describe OpenStack resources once the lab is up
 
 Run `make` to list every target.
 
-1. `make vm-create` creates the host VM
-2. `make connect` opens SSH plus a tunnel to Horizon
-3. On the VM, `make check-nested`, then install DevStack using
+1. `make env` creates `.env`, then edit it if the defaults do not fit
+2. `make vm-create` creates the host VM
+3. `make connect` opens SSH plus a tunnel to Horizon
+4. On the VM, `make check-nested`, then install DevStack using
    `devstack/local.conf.example`
-4. Fill in `~/.config/openstack/clouds.yaml` on your workstation
-5. `make tf-init && make tf-apply`
-6. `make vm-stop` at the end of every session, or billing keeps running
+5. Fill in `~/.config/openstack/clouds.yaml` on your workstation
+6. `make tf-init && make tf-apply`
+7. `make vm-stop` at the end of every session, or billing keeps running
+
+## Configuration
+
+Every setting lives in `.env`: resource group, region, VM name and size, admin
+user, disk size, auto shutdown time, Horizon port. Scripts and Makefile read
+it, so nothing has to be edited in the code.
+
+`.env` is gitignored, `.env.example` is the committed template.
 
 ## Requirements
 
