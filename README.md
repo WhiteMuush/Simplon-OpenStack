@@ -3,6 +3,13 @@
 OpenStack lab, fully declarative: Terraform builds the Azure host, Ansible
 installs DevStack on it, Terraform then drives OpenStack itself.
 
+**Full documentation lives in the
+[wiki](https://github.com/WhiteMuush/Simplon-OpenStack/wiki):**
+[prerequisites and how to install them](https://github.com/WhiteMuush/Simplon-OpenStack/wiki/Prerequisites),
+[every Makefile target](https://github.com/WhiteMuush/Simplon-OpenStack/wiki/Makefile),
+[how it works](https://github.com/WhiteMuush/Simplon-OpenStack/wiki/How-it-works)
+and [troubleshooting](https://github.com/WhiteMuush/Simplon-OpenStack/wiki/Troubleshooting).
+
 ## Layout
 
 ```
