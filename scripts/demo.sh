@@ -44,6 +44,7 @@ on_host "OS_CLOUD=lab openstack hypervisor list"
 step "6. Logging into the instance from here"
 fip="$(in_stack 'terraform output -raw floating_ip' | tr -d '\r' | tr -d '[:space:]')"
 [[ -n "$fip" ]] || die "no floating IP in the Terraform state, rerun: make demo"
+name="$(in_stack 'terraform output -raw instance_name' | tr -d '[:space:]')"
 
 # Terraform returns as soon as Nova reports ACTIVE, well before CirrOS has
 # started sshd. Retry rather than fail on the first refusal.
@@ -56,7 +57,7 @@ for _ in $(seq 30); do
   sleep 5
 done
 
-log "connecting with: ssh -J ${user}@${host} cirros@${fip}"
+log "instance ${name}, reachable at ${fip}, Linux account cirros"
 ssh -J "${user}@${host}" -o StrictHostKeyChecking=accept-new \
   -o ConnectTimeout=10 "cirros@${fip}" 'hostname; uptime'
 
@@ -64,7 +65,8 @@ ssh -J "${user}@${host}" -o StrictHostKeyChecking=accept-new \
 step "What you can do now"
 cat <<SUMMARY
 
-  Log into the instance
+  Log into the instance named ${name}
+  cirros is the Linux account inside the image, ${name} is the OpenStack name
     ssh -J ${user}@${host} cirros@${fip}
 
   Open the dashboard, user admin, password from .env
