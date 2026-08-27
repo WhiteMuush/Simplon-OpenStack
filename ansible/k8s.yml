@@ -47,6 +47,19 @@
         OS_CLOUD: lab
       when: image_check.rc != 0
 
+    # DevStack leaves the private subnet without a resolver, so an instance can
+    # route to the internet but cannot resolve a single name, and cloud-init
+    # fails silently on its first curl.
+    - name: Give the private subnet a resolver
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.command: >-
+        openstack subnet set
+        --dns-nameserver 1.1.1.1 --dns-nameserver 8.8.8.8
+        private-subnet
+      environment:
+        OS_CLOUD: lab
+      changed_when: true
+
     - name: Create the Kubernetes directory
       ansible.builtin.file:
         path: "{{ k8s_dir }}"

@@ -26,7 +26,7 @@ step "1. Preparing the host and the Ubuntu image"
 
 step "2. Terraform creates the node"
 in_stack "terraform init -input=false -no-color"
-in_stack "terraform apply -input=false -auto-approve -no-color"
+in_stack "terraform apply -input=false -auto-approve -no-color ${REPLACE:+-replace=openstack_compute_instance_v2.k3s}"
 
 fip="$(in_stack 'terraform output -raw floating_ip' | tr -d '[:space:]')"
 [[ -n "$fip" ]] || die "no floating IP in the Terraform state"
