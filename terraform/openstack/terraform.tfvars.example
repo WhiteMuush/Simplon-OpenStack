@@ -8,3 +8,6 @@ public_key_path = "~/.ssh/id_rsa.pub"
 # and is not reachable from outside. Never widen these to 0.0.0.0/0.
 allowed_ssh_cidr  = "172.24.4.0/24"
 allowed_http_cidr = "172.24.4.0/24"
+
+# Used to print a ready to paste ssh command, user@host of the lab machine.
+admin_hint = "azureuser@20.19.180.204"
