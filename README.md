@@ -6,23 +6,27 @@ installs DevStack on it, Terraform then drives OpenStack itself.
 ## Layout
 
 ```
+scripts/               every step, one script per job
 terraform/azure/       host VM, network, NSG
 ansible/               DevStack install playbook
 terraform/openstack/   instances, networks and security groups in the lab
 ```
 
+The Makefile holds no logic, each target points at a script.
+
 ## Walkthrough
 
 ```bash
-make env          # create .env and terraform.tfvars from the examples
-make tf-init
-make lab          # apply, generate the inventory, run the playbook
-make connect      # SSH with Horizon on http://localhost:8080/dashboard
-make vm-stop      # end of session, otherwise billing keeps running
+make env        # create .env and the tfvars files, generate a password
+                # then edit allowed_ssh_cidr in terraform/azure/terraform.tfvars
+make one-shot   # checks, host VM, inventory and DevStack, about an hour
+make connect    # SSH with Horizon on http://localhost:8080/dashboard
+make stop       # end of session, otherwise billing keeps running
 ```
 
-`make lab` chains `tf-apply`, `inventory` and `install`. The playbook is
-idempotent: it skips `stack.sh` when the stack is already up.
+`make one-shot` chains `preflight`, `host`, `inventory` and `install`, each of
+which can also be run on its own. The playbook is idempotent: it skips
+`stack.sh` when the stack is already up. Add `YES=1` to skip the prompts.
 
 Once DevStack answers, fill in `~/.config/openstack/clouds.yaml` from
 `clouds.yaml.example`, then `make os-init && make os-apply`.
