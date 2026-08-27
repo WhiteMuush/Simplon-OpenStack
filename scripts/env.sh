@@ -15,10 +15,10 @@ copy_missing "$ROOT/.env.example" "$ROOT/.env"
 copy_missing "$ROOT/terraform/azure/terraform.tfvars.example" "$ROOT/terraform/azure/terraform.tfvars"
 copy_missing "$ROOT/terraform/openstack/terraform.tfvars.example" "$ROOT/terraform/openstack/terraform.tfvars"
 
-# A lab password still deserves a real one: the repo is public and the file is
-# gitignored, so there is no reason to reuse a weak value.
+# Hex on purpose: the password lands inside rabbit://user:PASSWORD@host, and
+# base64 output contains / and + which break URL parsing further down.
 if ! grep -q '^DEVSTACK_PASSWORD=.\+' "$ROOT/.env"; then
-  password="$(openssl rand -base64 24)"
+  password="$(openssl rand -hex 24)"
   sed -i "s|^DEVSTACK_PASSWORD=.*|DEVSTACK_PASSWORD=${password}|" "$ROOT/.env"
   log "generated DEVSTACK_PASSWORD"
 fi

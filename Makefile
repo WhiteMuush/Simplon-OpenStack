@@ -5,7 +5,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 S := ./scripts
 
-.PHONY: help env one-shot preflight host inventory install connect \
+.PHONY: help env one-shot preflight host inventory install reset connect \
         status start stop os-apply os-destroy destroy fmt clean
 
 help: ## Show this help
@@ -31,6 +31,9 @@ inventory: ## Write the Ansible inventory from the Terraform outputs
 
 install: ## Install DevStack, 30 to 60 minutes
 	@$(S)/devstack-install.sh
+
+reset: ## Wipe a broken DevStack install before retrying
+	@$(S)/devstack-reset.sh
 
 connect: ## SSH in with Horizon tunnelled to a local port
 	@$(S)/connect.sh

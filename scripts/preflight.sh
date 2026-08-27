@@ -36,4 +36,9 @@ limit="$(az vm list-usage -l "$(az group show -n "$RG" --query location -o tsv)"
   --query "[?localName=='Total Regional vCPUs'].limit" -o tsv)"
 log "regional vCPU quota: ${used}/${limit} used"
 
+# Anything outside [A-Za-z0-9] ends up unescaped in the RabbitMQ and database
+# URLs, and DevStack fails halfway through with an opaque parsing error.
+[[ "$DEVSTACK_PASSWORD" =~ ^[A-Za-z0-9]+$ ]] \
+  || die "DEVSTACK_PASSWORD must be alphanumeric only, regenerate with: openssl rand -hex 24"
+
 log "preflight passed"
