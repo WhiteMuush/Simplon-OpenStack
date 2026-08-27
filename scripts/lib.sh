@@ -8,6 +8,10 @@ TF_AZURE=(terraform -chdir="$ROOT/terraform/azure")
 TF_OS=(terraform -chdir="$ROOT/terraform/openstack")
 INVENTORY="$ROOT/ansible/inventory.ini"
 
+# Keeps the credentials inside the project rather than in the home directory.
+# Gitignored, and read by both the openstack client and the Terraform provider.
+export OS_CLIENT_CONFIG_FILE="$ROOT/clouds.yaml"
+
 log()  { printf '\033[36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!!\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[31mxx\033[0m %s\n' "$*" >&2; exit 1; }
