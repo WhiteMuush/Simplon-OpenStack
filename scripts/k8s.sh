@@ -65,13 +65,23 @@ node_ssh 'sudo cat /etc/rancher/k3s/k3s.yaml' > "$ROOT/kubeconfig"
 chmod 600 "$ROOT/kubeconfig"
 log "wrote $ROOT/kubeconfig"
 
+step "5. Opening the tunnel to the Kubernetes API"
+# 6443 is only reachable from the lab host, so it is forwarded rather than
+# exposed. Reused when a tunnel is already listening.
+if timeout 2 bash -c "</dev/tcp/127.0.0.1/6443" 2>/dev/null; then
+  log "tunnel already up on port 6443"
+else
+  ssh -f -N -L "6443:${fip}:6443" "${user}@${host}"
+  log "tunnel opened on port 6443"
+fi
+
+KUBECONFIG="$ROOT/kubeconfig" kubectl get nodes 2>/dev/null \
+  || warn "kubectl is not installed here, the kubeconfig is still written"
+
 step "What you can do now"
 cat <<SUMMARY
 
-  Open the tunnel to the Kubernetes API, and leave it running
-    ssh -N -L 6443:${fip}:6443 ${user}@${host}
-
-  Then, from this project directory
+  From this project directory
     export KUBECONFIG=\$PWD/kubeconfig
     kubectl get nodes
 
