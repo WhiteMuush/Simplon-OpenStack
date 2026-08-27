@@ -1,0 +1,4 @@
+cloud_name      = "lab"
+instance_name   = "web-01"
+flavor_name     = "m1.tiny"
+public_key_path = "~/.ssh/id_rsa.pub"

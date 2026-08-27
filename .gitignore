@@ -1,0 +1,21 @@
+# Secrets, jamais dans Git
+clouds.yaml
+*.pem
+*.key
+id_rsa*
+.env
+local.conf
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Divers
+*.log
+
+# IDE
+.idea/
