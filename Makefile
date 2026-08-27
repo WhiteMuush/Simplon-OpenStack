@@ -4,14 +4,18 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-# Settings live in .env, copied from .env.example. Values below are fallbacks.
+# Every setting lives in .env, copied from .env.example. Nothing is defaulted
+# here on purpose: a missing key must fail loudly, not fall back to someone
+# else's resource group.
 -include .env
 export
 
-RG           ?= mpetitRG
-VM           ?= devstack
-ADMIN        ?= azureuser
-HORIZON_PORT ?= 8080
+GOALS := $(or $(MAKECMDGOALS),help)
+REQUIRED := RG VM ADMIN HORIZON_PORT DEVSTACK_PASSWORD
+
+ifeq (,$(filter env help,$(GOALS)))
+$(foreach v,$(REQUIRED),$(if $(strip $($(v))),,$(error $(v) is not set, run `make env` then edit .env)))
+endif
 
 TF_AZURE := terraform -chdir=terraform/azure
 TF_OS    := terraform -chdir=terraform/openstack
