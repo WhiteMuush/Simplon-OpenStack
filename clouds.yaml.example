@@ -1,11 +1,12 @@
 # Copy to ~/.config/openstack/clouds.yaml then chmod 600.
 # The password is stored in clear text: this file NEVER goes into Git.
+# Use the value of DEVSTACK_PASSWORD from your .env.
 clouds:
   lab:
     auth:
       auth_url: http://127.0.0.1:8080/identity
       username: admin
-      password: labpassword
+      password: CHANGE_ME
       project_name: admin
       user_domain_name: Default
       project_domain_name: Default

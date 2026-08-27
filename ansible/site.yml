@@ -9,7 +9,9 @@
     # Pin a release branch once picked. List them with:
     #   git ls-remote --heads https://opendev.org/openstack/devstack 'stable/*'
     devstack_version: master
-    devstack_password: labpassword
+    # Never stored in the repo. Comes from DEVSTACK_PASSWORD, which the
+    # Makefile exports out of the gitignored .env. Fails loudly when unset.
+    devstack_password: "{{ lookup('ansible.builtin.env', 'DEVSTACK_PASSWORD') | mandatory }}"
     devstack_floating_range: 172.24.4.0/24
     # stack.sh builds from source, so it needs a long window.
     devstack_timeout: 5400
