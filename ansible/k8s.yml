@@ -50,15 +50,26 @@
     # DevStack leaves the private subnet without a resolver, so an instance can
     # route to the internet but cannot resolve a single name, and cloud-init
     # fails silently on its first curl.
+    - name: Read the resolvers already on the subnet
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.command: openstack subnet show private-subnet -c dns_nameservers -f value
+      environment:
+        OS_CLOUD: lab
+      register: subnet_dns
+      changed_when: false
+
+    # `subnet set --dns-nameserver` appends rather than replaces, so a second
+    # run would send a duplicate and the API answers 400. Clearing first makes
+    # the task safe to repeat.
     - name: Give the private subnet a resolver
       become_user: "{{ devstack_user }}"
       ansible.builtin.command: >-
-        openstack subnet set
+        openstack subnet set --no-dns-nameservers
         --dns-nameserver 1.1.1.1 --dns-nameserver 8.8.8.8
         private-subnet
       environment:
         OS_CLOUD: lab
-      changed_when: true
+      when: "'1.1.1.1' not in subnet_dns.stdout"
 
     - name: Create the Kubernetes directory
       ansible.builtin.file:
