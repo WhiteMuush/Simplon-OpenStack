@@ -1,6 +1,7 @@
 cloud_name      = "lab"
 instance_name   = "web-01"
 flavor_name     = "m1.tiny"
+image_name      = "cirros-0.6.3-x86_64-disk"
 public_key_path = "~/.ssh/id_rsa.pub"
 
 # Both default to the DevStack floating range, which lives inside the host VM

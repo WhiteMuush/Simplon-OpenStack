@@ -13,7 +13,7 @@ variable "instance_name" {
 variable "image_name" {
   description = "System image. CirrOS is 50 MB, ideal for testing."
   type        = string
-  default     = "cirros-0.6.2-x86_64-disk"
+  default     = "cirros-0.6.3-x86_64-disk"
 }
 
 variable "flavor_name" {
