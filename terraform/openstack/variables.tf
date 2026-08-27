@@ -43,3 +43,15 @@ variable "allowed_http_cidr" {
   description = "Source allowed to reach port 80 on the instances"
   type        = string
 }
+
+variable "floating_ip_pool" {
+  description = "External network the floating IP is taken from"
+  type        = string
+  default     = "public"
+}
+
+variable "admin_hint" {
+  description = "user@host of the lab machine, used to build the ssh command"
+  type        = string
+  default     = ""
+}

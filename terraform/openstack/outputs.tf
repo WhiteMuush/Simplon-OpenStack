@@ -5,3 +5,13 @@ output "instance_id" {
 output "instance_ip" {
   value = openstack_compute_instance_v2.vm.access_ip_v4
 }
+
+output "floating_ip" {
+  description = "Address to reach the instance, through the lab host"
+  value       = openstack_networking_floatingip_v2.vm.address
+}
+
+output "ssh_command" {
+  description = "Ready to paste, jumps through the lab host"
+  value       = "ssh -J ${var.admin_hint} cirros@${openstack_networking_floatingip_v2.vm.address}"
+}
