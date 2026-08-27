@@ -17,7 +17,7 @@ help: ## Show this help
 	@grep -hE '^[a-z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-## --- Azure host VM -----------------------------------------------------
+## Azure host VM
 
 vm-create: ## Create the host VM, nested virtualization enabled
 	@./azure/01-create-vm.sh
@@ -41,12 +41,12 @@ vm-delete: ## Delete the VM and its disk, irreversible
 	@read -p "Delete VM $(VM) in $(RG)? [y/N] " ok && [[ $$ok == y ]] || exit 1
 	@az vm delete -g $(RG) -n $(VM) --yes
 
-## --- DevStack ----------------------------------------------------------
+## DevStack
 
 check-nested: ## Check KVM availability, run this ON the VM
 	@./azure/check-nested.sh
 
-## --- Terraform ---------------------------------------------------------
+## Terraform
 
 tf-init: ## Download the OpenStack provider
 	@$(TF) init
@@ -63,7 +63,7 @@ tf-destroy: ## Destroy every managed resource
 tf-fmt: ## Format the Terraform files
 	@$(TF) fmt -recursive
 
-## --- OpenStack ---------------------------------------------------------
+## OpenStack
 
 os-status: ## List services, hypervisors and instances
 	@openstack compute service list
