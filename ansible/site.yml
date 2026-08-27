@@ -58,12 +58,14 @@
       args:
         creates: /swapfile
 
+    - name: List the active swap devices
+      ansible.builtin.command: swapon --show=NAME --noheadings
+      register: active_swap
+      changed_when: false
+
     - name: Enable swap
-      ansible.builtin.command:
-        cmd: swapon /swapfile
-      register: swapon
-      changed_when: swapon.rc == 0
-      failed_when: swapon.rc != 0 and 'already' not in swapon.stderr
+      ansible.builtin.command: swapon /swapfile
+      when: "'/swapfile' not in active_swap.stdout"
 
     - name: Create the stack user
       ansible.builtin.user:
