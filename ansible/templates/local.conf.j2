@@ -1,0 +1,29 @@
+{# HOST_IP must be the private address: the public one does not exist on the
+   interface, Azure translates it upstream. #}
+[[local|localrc]]
+ADMIN_PASSWORD={{ devstack_password }}
+DATABASE_PASSWORD=$ADMIN_PASSWORD
+RABBIT_PASSWORD=$ADMIN_PASSWORD
+SERVICE_PASSWORD=$ADMIN_PASSWORD
+
+HOST_IP={{ private_ip | default(ansible_default_ipv4.address) }}
+
+{# On a cloud VM the provider will not route arbitrary addresses, so the
+   floating range stays internal to the host. #}
+FLOATING_RANGE={{ devstack_floating_range }}
+
+disable_service tempest
+disable_service swift
+disable_service cinder
+disable_service c-sch
+disable_service c-api
+disable_service c-vol
+
+{% if not kvm_available %}
+LIBVIRT_TYPE=qemu
+{% endif %}
+
+{# 8 GB is the floor for DevStack. A swap file keeps stack.sh from being
+   killed by the OOM reaper during the pip and MySQL phases. #}
+LOGFILE=/opt/stack/logs/stack.sh.log
+LOGDAYS=2

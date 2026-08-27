@@ -1,0 +1,12 @@
+subscription_id     = "5e683e0f-b00c-48d6-9769-5aaf598de8f1"
+resource_group_name = "mpetitRG"
+location            = "francecentral"
+vm_name             = "devstack"
+vm_size             = "Standard_D2s_v3"
+os_disk_type        = "StandardSSD_LRS"
+admin_username      = "azureuser"
+public_key_path     = "~/.ssh/id_rsa.pub"
+
+# Your own public address, so port 22 is not open to the world.
+# Find it with: curl -s ifconfig.me
+allowed_ssh_cidr = "203.0.113.10/32"

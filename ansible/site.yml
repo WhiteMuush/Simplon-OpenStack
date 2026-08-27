@@ -1,0 +1,128 @@
+- name: Install DevStack on the Azure host
+  hosts: devstack
+  become: true
+
+  vars:
+    devstack_user: stack
+    devstack_home: /opt/stack
+    devstack_repo: https://opendev.org/openstack/devstack
+    # Pin a release branch once picked. List them with:
+    #   git ls-remote --heads https://opendev.org/openstack/devstack 'stable/*'
+    devstack_version: master
+    # Never stored in the repo. Comes from DEVSTACK_PASSWORD, which the
+    # Makefile exports out of the gitignored .env. Fails loudly when unset.
+    devstack_password: "{{ lookup('ansible.builtin.env', 'DEVSTACK_PASSWORD') | mandatory }}"
+    devstack_floating_range: 172.24.4.0/24
+    # stack.sh builds from source, so it needs a long window.
+    devstack_timeout: 5400
+
+  tasks:
+    # ansible_processor_flags is not collected on every platform, so read
+    # /proc/cpuinfo instead of trusting the fact to exist.
+    - name: Look for CPU virtualization extensions
+      ansible.builtin.command: grep -cE '(vmx|svm)' /proc/cpuinfo
+      register: cpu_virt
+      changed_when: false
+      failed_when: false
+
+    - name: Record KVM availability
+      ansible.builtin.set_fact:
+        kvm_available: "{{ (cpu_virt.stdout | default('0') | int) > 0 }}"
+
+    - name: Warn when KVM is missing
+      ansible.builtin.debug:
+        msg: >
+          No VT-x exposed, falling back to LIBVIRT_TYPE=qemu. Instances will be
+          slow, use the CirrOS image only.
+      when: not kvm_available
+
+    # acl matters here: without it, becoming the unprivileged stack user falls
+    # back to a chmod syntax that does not exist on Linux, and every task
+    # running as that user fails.
+    - name: Install git and acl
+      ansible.builtin.apt:
+        name:
+          - git
+          - acl
+        update_cache: true
+
+    # The allowed sizes top out at 8 GB, which is DevStack's floor. Without
+    # swap, stack.sh gets killed by the OOM reaper partway through.
+    # One task, not a loop: `creates` would skip chmod and mkswap as soon as
+    # fallocate had made the file.
+    - name: Create a swap file
+      ansible.builtin.shell: |
+        fallocate -l 4G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+      args:
+        creates: /swapfile
+
+    - name: List the active swap devices
+      ansible.builtin.command: swapon --show=NAME --noheadings
+      register: active_swap
+      changed_when: false
+
+    - name: Enable swap
+      ansible.builtin.command: swapon /swapfile
+      when: "'/swapfile' not in active_swap.stdout"
+
+    - name: Create the stack user
+      ansible.builtin.user:
+        name: "{{ devstack_user }}"
+        home: "{{ devstack_home }}"
+        shell: /bin/bash
+        create_home: true
+
+    # DevStack reaches into the home directory from other accounts during the
+    # install, so it must be traversable.
+    - name: Make the home directory traversable
+      ansible.builtin.file:
+        path: "{{ devstack_home }}"
+        mode: "0755"
+
+    - name: Grant passwordless sudo to the stack user
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/stack
+        content: "{{ devstack_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        mode: "0440"
+        validate: visudo -cf %s
+
+    - name: Clone DevStack
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.git:
+        repo: "{{ devstack_repo }}"
+        dest: "{{ devstack_home }}/devstack"
+        version: "{{ devstack_version }}"
+
+    - name: Render local.conf
+      ansible.builtin.template:
+        src: templates/local.conf.j2
+        dest: "{{ devstack_home }}/devstack/local.conf"
+        owner: "{{ devstack_user }}"
+        group: "{{ devstack_user }}"
+        mode: "0644"
+
+    - name: Check whether the stack is already up
+      ansible.builtin.stat:
+        path: "{{ devstack_home }}/devstack/.stackenv"
+      register: stackenv
+
+    # Runs for 30 to 60 minutes. Kept idempotent by the .stackenv guard, so a
+    # rerun of the playbook does not reinstall everything.
+    - name: Run stack.sh
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.command:
+        cmd: ./stack.sh
+        chdir: "{{ devstack_home }}/devstack"
+      when: not stackenv.stat.exists
+      async: "{{ devstack_timeout }}"
+      poll: 30
+      register: stack_run
+      changed_when: stack_run.rc == 0
+
+    - name: Show how to reach the dashboard
+      ansible.builtin.debug:
+        msg: >
+          Tunnel with `make connect`, then open
+          http://localhost:{{ horizon_port | default(8080) }}/dashboard

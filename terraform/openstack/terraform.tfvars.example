@@ -1,0 +1,9 @@
+cloud_name      = "lab"
+instance_name   = "web-01"
+flavor_name     = "m1.tiny"
+public_key_path = "~/.ssh/id_rsa.pub"
+
+# Both default to the DevStack floating range, which lives inside the host VM
+# and is not reachable from outside. Never widen these to 0.0.0.0/0.
+allowed_ssh_cidr  = "172.24.4.0/24"
+allowed_http_cidr = "172.24.4.0/24"

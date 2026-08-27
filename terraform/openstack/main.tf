@@ -15,7 +15,7 @@ resource "openstack_networking_secgroup_rule_v2" "ssh" {
   protocol          = "tcp"
   port_range_min    = 22
   port_range_max    = 22
-  remote_ip_prefix  = "172.24.4.0/24"
+  remote_ip_prefix  = var.allowed_ssh_cidr
   security_group_id = openstack_networking_secgroup_v2.web.id
 }
 
@@ -25,7 +25,7 @@ resource "openstack_networking_secgroup_rule_v2" "http" {
   protocol          = "tcp"
   port_range_min    = 80
   port_range_max    = 80
-  remote_ip_prefix  = "0.0.0.0/0"
+  remote_ip_prefix  = var.allowed_http_cidr
   security_group_id = openstack_networking_secgroup_v2.web.id
 }
 

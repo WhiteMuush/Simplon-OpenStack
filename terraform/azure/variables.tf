@@ -1,0 +1,61 @@
+variable "subscription_id" {
+  description = "Azure subscription hosting the lab"
+  type        = string
+}
+
+variable "resource_group_name" {
+  description = "Existing resource group, this lab does not create one"
+  type        = string
+}
+
+variable "location" {
+  description = "Azure region"
+  type        = string
+  default     = "francecentral"
+}
+
+variable "vm_name" {
+  description = "Host VM name"
+  type        = string
+  default     = "devstack"
+}
+
+# An Azure Policy on the shared subscription only allows a short list of sizes.
+# Out of that list, Dsv3 is the sole family exposing VT-x, which Nova needs to
+# run KVM: the B and A series have no nested virtualization, and the v2 ones
+# predate the feature.
+variable "vm_size" {
+  description = "VM size, must support nested virtualization"
+  type        = string
+  default     = "Standard_D2s_v3"
+}
+
+variable "admin_username" {
+  description = "Linux admin user"
+  type        = string
+  default     = "azureuser"
+}
+
+variable "public_key_path" {
+  description = "SSH public key injected into the VM"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+# The same policy forbids premium disks.
+variable "os_disk_type" {
+  description = "OS disk storage type, premium is disallowed by policy"
+  type        = string
+  default     = "StandardSSD_LRS"
+}
+
+variable "os_disk_size_gb" {
+  description = "OS disk size, DevStack clones a lot of sources"
+  type        = number
+  default     = 64
+}
+
+variable "allowed_ssh_cidr" {
+  description = "Source allowed to reach port 22, never 0.0.0.0/0"
+  type        = string
+}

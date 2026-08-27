@@ -1,74 +1,70 @@
-# OpenStack lab: Azure host VM + DevStack + Terraform.
-# Run `make` to list the available targets.
+# Thin entry point. Every target is a pointer to a script in scripts/,
+# the logic lives there. Settings come from .env, see .env.example.
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
+S := ./scripts
 
-RG      ?= mpetitRG
-VM      ?= devstack
-LOC     ?= francecentral
-ADMIN   ?= azureuser
-TF      := terraform -chdir=terraform
-
-.PHONY: help vm-create vm-ip vm-status connect vm-start vm-stop vm-delete \
-        check-nested tf-init tf-plan tf-apply tf-destroy tf-fmt os-status clean
+.PHONY: help env one-shot preflight host inventory install reset connect \
+        status start stop os-apply os-destroy destroy fmt clean
 
 help: ## Show this help
-	@grep -hE '^[a-z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
 
-## Azure host VM
+env: ## Create .env and the tfvars files from their examples
+	@$(S)/env.sh
 
-vm-create: ## Create the host VM, nested virtualization enabled
-	@./azure/01-create-vm.sh
+one-shot: ## Checks, host VM, inventory and DevStack in a single run
+	@$(S)/one-shot.sh
 
-vm-ip: ## Print the public IP of the host VM
-	@az vm show -d -g $(RG) -n $(VM) --query publicIps -o tsv
+## Host
 
-vm-status: ## Show the power state, deallocated means no compute billing
-	@az vm show -d -g $(RG) -n $(VM) --query powerState -o tsv
+preflight: ## Check tools, login, quota and the SSH source range
+	@$(S)/preflight.sh
 
-connect: ## SSH into the VM, Horizon tunnelled to localhost:8080
-	@./azure/02-connect.sh
+host: ## Create or update the Azure host VM
+	@$(S)/host-apply.sh
 
-vm-start: ## Start the VM again after a deallocate
-	@az vm start -g $(RG) -n $(VM)
+inventory: ## Write the Ansible inventory from the Terraform outputs
+	@$(S)/inventory.sh
 
-vm-stop: ## Deallocate the VM, run this at the end of every session
-	@./azure/99-deallocate.sh
+install: ## Install DevStack, 30 to 60 minutes
+	@$(S)/devstack-install.sh
 
-vm-delete: ## Delete the VM and its disk, irreversible
-	@read -p "Delete VM $(VM) in $(RG)? [y/N] " ok && [[ $$ok == y ]] || exit 1
-	@az vm delete -g $(RG) -n $(VM) --yes
+reset: ## Wipe a broken DevStack install before retrying
+	@$(S)/devstack-reset.sh
 
-## DevStack
+connect: ## SSH in with Horizon tunnelled to a local port
+	@$(S)/connect.sh
 
-check-nested: ## Check KVM availability, run this ON the VM
-	@./azure/check-nested.sh
+## Billing
 
-## Terraform
+status: ## Show the power state of the host VM
+	@$(S)/power.sh status
 
-tf-init: ## Download the OpenStack provider
-	@$(TF) init
+start: ## Start the host VM after a deallocate
+	@$(S)/power.sh start
 
-tf-plan: ## Preview the changes
-	@$(TF) plan
+stop: ## Deallocate the host VM, run this at the end of every session
+	@$(S)/power.sh stop
 
-tf-apply: ## Apply the changes
-	@$(TF) apply
+## OpenStack resources
 
-tf-destroy: ## Destroy every managed resource
-	@$(TF) destroy
+os-apply: ## Create the instances, networks and security groups
+	@$(S)/openstack-apply.sh
 
-tf-fmt: ## Format the Terraform files
-	@$(TF) fmt -recursive
+os-destroy: ## Remove every OpenStack resource
+	@$(S)/openstack-destroy.sh
 
-## OpenStack
+## Housekeeping
 
-os-status: ## List services, hypervisors and instances
-	@openstack compute service list
-	@openstack hypervisor list
-	@openstack server list
+destroy: ## Destroy the host VM and its network, irreversible
+	@$(S)/host-destroy.sh
 
-clean: ## Remove local Terraform state and cache
-	@rm -rf terraform/.terraform terraform/*.tfstate*
+fmt: ## Format both Terraform stacks
+	@terraform -chdir=terraform/azure fmt -recursive
+	@terraform -chdir=terraform/openstack fmt -recursive
+
+clean: ## Remove local state, caches and the generated inventory
+	@rm -rf terraform/*/.terraform terraform/*/*.tfstate* ansible/inventory.ini
