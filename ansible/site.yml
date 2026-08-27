@@ -1,0 +1,91 @@
+- name: Install DevStack on the Azure host
+  hosts: devstack
+  become: true
+
+  vars:
+    devstack_user: stack
+    devstack_home: /opt/stack
+    devstack_repo: https://opendev.org/openstack/devstack
+    # Pin a release branch once picked. List them with:
+    #   git ls-remote --heads https://opendev.org/openstack/devstack 'stable/*'
+    devstack_version: master
+    devstack_password: labpassword
+    devstack_floating_range: 172.24.4.0/24
+    # stack.sh builds from source, so it needs a long window.
+    devstack_timeout: 5400
+
+  tasks:
+    - name: Report whether the CPU exposes virtualization extensions
+      ansible.builtin.set_fact:
+        kvm_available: "{{ 'vmx' in ansible_processor_flags or 'svm' in ansible_processor_flags }}"
+
+    - name: Warn when KVM is missing
+      ansible.builtin.debug:
+        msg: >
+          No VT-x exposed, falling back to LIBVIRT_TYPE=qemu. Instances will be
+          slow, use the CirrOS image only.
+      when: not kvm_available
+
+    - name: Install git
+      ansible.builtin.apt:
+        name: git
+        update_cache: true
+
+    - name: Create the stack user
+      ansible.builtin.user:
+        name: "{{ devstack_user }}"
+        home: "{{ devstack_home }}"
+        shell: /bin/bash
+        create_home: true
+
+    # DevStack reaches into the home directory from other accounts during the
+    # install, so it must be traversable.
+    - name: Make the home directory traversable
+      ansible.builtin.file:
+        path: "{{ devstack_home }}"
+        mode: "0755"
+
+    - name: Grant passwordless sudo to the stack user
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/stack
+        content: "{{ devstack_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        mode: "0440"
+        validate: visudo -cf %s
+
+    - name: Clone DevStack
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.git:
+        repo: "{{ devstack_repo }}"
+        dest: "{{ devstack_home }}/devstack"
+        version: "{{ devstack_version }}"
+
+    - name: Render local.conf
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.template:
+        src: templates/local.conf.j2
+        dest: "{{ devstack_home }}/devstack/local.conf"
+        mode: "0644"
+
+    - name: Check whether the stack is already up
+      ansible.builtin.stat:
+        path: "{{ devstack_home }}/devstack/.stackenv"
+      register: stackenv
+
+    # Runs for 30 to 60 minutes. Kept idempotent by the .stackenv guard, so a
+    # rerun of the playbook does not reinstall everything.
+    - name: Run stack.sh
+      become_user: "{{ devstack_user }}"
+      ansible.builtin.command:
+        cmd: ./stack.sh
+        chdir: "{{ devstack_home }}/devstack"
+      when: not stackenv.stat.exists
+      async: "{{ devstack_timeout }}"
+      poll: 30
+      register: stack_run
+      changed_when: stack_run.rc == 0
+
+    - name: Show how to reach the dashboard
+      ansible.builtin.debug:
+        msg: >
+          Tunnel with `make connect`, then open
+          http://localhost:{{ horizon_port | default(8080) }}/dashboard

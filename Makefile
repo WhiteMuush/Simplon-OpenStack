@@ -1,87 +1,101 @@
-# OpenStack lab: Azure host VM + DevStack + Terraform.
-# Run `make` to list the available targets.
+# OpenStack lab: Terraform builds the Azure host, Ansible installs DevStack,
+# Terraform then drives OpenStack itself. Run `make` to list the targets.
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-# Settings live in .env, copied from .env.example. The values below are only
-# fallbacks used when a key is missing.
+# Settings live in .env, copied from .env.example. Values below are fallbacks.
 -include .env
 export
 
-RG      ?= mpetitRG
-VM      ?= devstack
-LOC     ?= francecentral
-ADMIN   ?= azureuser
-SIZE    ?= Standard_D4s_v4
-TF      := terraform -chdir=terraform
+RG           ?= mpetitRG
+VM           ?= devstack
+ADMIN        ?= azureuser
+HORIZON_PORT ?= 8080
 
-.PHONY: help env vm-create vm-ip vm-status connect vm-start vm-stop vm-delete \
-        check-nested tf-init tf-plan tf-apply tf-destroy tf-fmt os-status clean
+TF_AZURE := terraform -chdir=terraform/azure
+TF_OS    := terraform -chdir=terraform/openstack
+INVENTORY := ansible/inventory.ini
+
+.PHONY: help env lab tf-init tf-plan tf-apply tf-destroy inventory install \
+        connect vm-start vm-stop vm-status os-init os-plan os-apply os-destroy \
+        fmt clean
 
 help: ## Show this help
-	@echo "Target VM: $(VM) in $(RG), $(LOC), $(SIZE)"
+	@echo "VM $(VM) in $(RG)"
 	@echo
 	@grep -hE '^[a-z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-## Setup
+env: ## Create .env and the tfvars files from their examples
+	@[[ -f .env ]] || cp .env.example .env
+	@[[ -f terraform/azure/terraform.tfvars ]] || cp terraform/azure/terraform.tfvars.example terraform/azure/terraform.tfvars
+	@echo "Edit .env and terraform/azure/terraform.tfvars before applying"
 
-env: ## Create .env from .env.example if missing
-	@[[ -f .env ]] && echo ".env already exists" || { cp .env.example .env; echo ".env created, edit it if needed"; }
+lab: tf-apply inventory install ## Build the host and install DevStack in one go
 
-## Azure host VM
+## Azure host
 
-vm-create: ## Create the host VM, nested virtualization enabled
-	@./azure/01-create-vm.sh
+tf-init: ## Download the azurerm provider
+	@$(TF_AZURE) init
 
-vm-ip: ## Print the public IP of the host VM
-	@az vm show -d -g $(RG) -n $(VM) --query publicIps -o tsv
+tf-plan: ## Preview the host changes
+	@$(TF_AZURE) plan
+
+tf-apply: ## Create or update the host VM
+	@$(TF_AZURE) apply
+
+tf-destroy: ## Destroy the host VM and its network
+	@$(TF_AZURE) destroy
+
+## DevStack
+
+inventory: ## Write the Ansible inventory from the Terraform outputs
+	@printf '[devstack]\n%s ansible_user=%s\n\n[devstack:vars]\nprivate_ip=%s\nhorizon_port=%s\n' \
+		"$$($(TF_AZURE) output -raw public_ip)" \
+		"$$($(TF_AZURE) output -raw admin_username)" \
+		"$$($(TF_AZURE) output -raw private_ip)" \
+		"$(HORIZON_PORT)" > $(INVENTORY)
+	@cat $(INVENTORY)
+
+install: ## Run the playbook, stack.sh takes 30 to 60 minutes
+	@cd ansible && ansible-playbook site.yml
+
+connect: ## SSH in with Horizon tunnelled to localhost
+	@echo "Horizon: http://localhost:$(HORIZON_PORT)/dashboard"
+	@ssh -L $(HORIZON_PORT):localhost:80 \
+		$$($(TF_AZURE) output -raw admin_username)@$$($(TF_AZURE) output -raw public_ip)
+
+## Billing
 
 vm-status: ## Show the power state, deallocated means no compute billing
 	@az vm show -d -g $(RG) -n $(VM) --query powerState -o tsv
-
-connect: ## SSH into the VM, Horizon tunnelled to localhost:8080
-	@./azure/02-connect.sh
 
 vm-start: ## Start the VM again after a deallocate
 	@az vm start -g $(RG) -n $(VM)
 
 vm-stop: ## Deallocate the VM, run this at the end of every session
-	@./azure/99-deallocate.sh
+	@az vm deallocate -g $(RG) -n $(VM)
 
-vm-delete: ## Delete the VM and its disk, irreversible
-	@read -p "Delete VM $(VM) in $(RG)? [y/N] " ok && [[ $$ok == y ]] || exit 1
-	@az vm delete -g $(RG) -n $(VM) --yes
+## OpenStack resources
 
-## DevStack
+os-init: ## Download the openstack provider
+	@$(TF_OS) init
 
-check-nested: ## Check KVM availability, run this ON the VM
-	@./azure/check-nested.sh
+os-plan: ## Preview the OpenStack changes
+	@$(TF_OS) plan
 
-## Terraform
+os-apply: ## Create the instances, networks and security groups
+	@$(TF_OS) apply
 
-tf-init: ## Download the OpenStack provider
-	@$(TF) init
+os-destroy: ## Remove every OpenStack resource
+	@$(TF_OS) destroy
 
-tf-plan: ## Preview the changes
-	@$(TF) plan
+## Housekeeping
 
-tf-apply: ## Apply the changes
-	@$(TF) apply
+fmt: ## Format both Terraform stacks
+	@$(TF_AZURE) fmt -recursive
+	@$(TF_OS) fmt -recursive
 
-tf-destroy: ## Destroy every managed resource
-	@$(TF) destroy
-
-tf-fmt: ## Format the Terraform files
-	@$(TF) fmt -recursive
-
-## OpenStack
-
-os-status: ## List services, hypervisors and instances
-	@openstack compute service list
-	@openstack hypervisor list
-	@openstack server list
-
-clean: ## Remove local Terraform state and cache
-	@rm -rf terraform/.terraform terraform/*.tfstate*
+clean: ## Remove local state, caches and the generated inventory
+	@rm -rf terraform/*/.terraform terraform/*/*.tfstate* $(INVENTORY)
