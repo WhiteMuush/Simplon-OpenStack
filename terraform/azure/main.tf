@@ -79,7 +79,7 @@ resource "azurerm_linux_virtual_machine" "lab" {
 
   os_disk {
     caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
+    storage_account_type = var.os_disk_type
     disk_size_gb         = var.os_disk_size_gb
   }
 

@@ -20,12 +20,14 @@ variable "vm_name" {
   default     = "devstack"
 }
 
-# Dv5 is unavailable on the shared subscription and the B series has no nested
-# virtualization. D4s_v4 exposes VT-x, which Nova needs to run KVM.
+# An Azure Policy on the shared subscription only allows a short list of sizes.
+# Out of that list, Dsv3 is the sole family exposing VT-x, which Nova needs to
+# run KVM: the B and A series have no nested virtualization, and the v2 ones
+# predate the feature.
 variable "vm_size" {
   description = "VM size, must support nested virtualization"
   type        = string
-  default     = "Standard_D4s_v4"
+  default     = "Standard_D2s_v3"
 }
 
 variable "admin_username" {
@@ -38,6 +40,13 @@ variable "public_key_path" {
   description = "SSH public key injected into the VM"
   type        = string
   default     = "~/.ssh/id_rsa.pub"
+}
+
+# The same policy forbids premium disks.
+variable "os_disk_type" {
+  description = "OS disk storage type, premium is disallowed by policy"
+  type        = string
+  default     = "StandardSSD_LRS"
 }
 
 variable "os_disk_size_gb" {

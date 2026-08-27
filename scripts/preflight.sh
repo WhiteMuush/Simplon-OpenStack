@@ -20,6 +20,15 @@ cidr="$(grep -E '^allowed_ssh_cidr' "$ROOT/terraform/azure/terraform.tfvars" | c
   || die "allowed_ssh_cidr still holds the example value, set it to $(curl -s ifconfig.me 2>/dev/null || echo 'your public IP')/32"
 log "ssh allowed from: $cidr"
 
+# Nested virtualization exists on Dv3 and later, on the E and F families, and
+# nowhere else. Without it Nova falls back to slow software emulation.
+size="$(grep -E '^vm_size' "$ROOT/terraform/azure/terraform.tfvars" | cut -d'"' -f2)"
+case "$size" in
+  Standard_B*|Standard_A*|*_v2)
+    die "$size has no nested virtualization, use Standard_D2s_v3" ;;
+esac
+log "vm size: $size"
+
 # The quota is shared with the class, so a full region is a likely failure.
 used="$(az vm list-usage -l "$(az group show -n "$RG" --query location -o tsv)" \
   --query "[?localName=='Total Regional vCPUs'].currentValue" -o tsv)"

@@ -14,10 +14,16 @@ FLOATING_RANGE={{ devstack_floating_range }}
 
 disable_service tempest
 disable_service swift
+disable_service cinder
+disable_service c-sch
+disable_service c-api
+disable_service c-vol
 
 {% if not kvm_available %}
 LIBVIRT_TYPE=qemu
 {% endif %}
 
+{# 8 GB is the floor for DevStack. A swap file keeps stack.sh from being
+   killed by the OOM reaper during the pip and MySQL phases. #}
 LOGFILE=/opt/stack/logs/stack.sh.log
 LOGDAYS=2
