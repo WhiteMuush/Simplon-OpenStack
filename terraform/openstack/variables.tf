@@ -33,3 +33,13 @@ variable "public_key_path" {
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }
+
+variable "allowed_ssh_cidr" {
+  description = "Source allowed to reach port 22 on the instances"
+  type        = string
+}
+
+variable "allowed_http_cidr" {
+  description = "Source allowed to reach port 80 on the instances"
+  type        = string
+}
