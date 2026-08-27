@@ -31,11 +31,19 @@ in_stack "terraform apply -input=false -auto-approve -no-color ${REPLACE:+-repla
 fip="$(in_stack 'terraform output -raw floating_ip' | tr -d '[:space:]')"
 [[ -n "$fip" ]] || die "no floating IP in the Terraform state"
 
+# Floating IPs are recycled here, so a recreated node presents a new host key
+# on an address that is already known. The entry is dropped from a known_hosts
+# file scoped to this lab, never from the personal one.
+known_hosts="$ROOT/.lab_known_hosts"
+touch "$known_hosts"
+ssh-keygen -f "$known_hosts" -R "$fip" >/dev/null 2>&1 || true
+
 step "3. Waiting for k3s"
 # The node holds the workstation public key, so the jump has to start here:
 # the lab host has no private key of its own.
 node_ssh() {
   ssh -J "${user}@${host}" -o StrictHostKeyChecking=accept-new \
+    -o UserKnownHostsFile="$known_hosts" \
     -o ConnectTimeout=10 "ubuntu@${fip}" "$1"
 }
 
@@ -68,7 +76,7 @@ cat <<SUMMARY
     kubectl get nodes
 
   Log into the node itself
-    ssh -J ${user}@${host} ubuntu@${fip}
+    ssh -J ${user}@${host} -o UserKnownHostsFile=.lab_known_hosts ubuntu@${fip}
 
   Remove the cluster
     make k8s-clean

@@ -25,3 +25,6 @@ ansible/inventory.ini
 
 # Fetched from the cluster
 kubeconfig
+
+# Host keys of short lived lab instances
+.lab_known_hosts
