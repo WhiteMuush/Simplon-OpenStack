@@ -6,7 +6,7 @@ SHELL := /bin/bash
 S := ./scripts
 
 .PHONY: help env one-shot preflight host inventory install reset connect \
-        status start stop demo demo-clean tunnel k8s k8s-clean os-apply os-destroy destroy fmt clean
+        status start stop demo demo-clean tunnel k8s k8s-clean os-apply os-destroy destroy fmt validate clean
 
 help: ## Show this help
 	@grep -hE '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -79,9 +79,11 @@ k8s-clean: ## Destroy the Kubernetes node
 destroy: ## Destroy the host VM and its network, irreversible
 	@$(S)/host-destroy.sh
 
-fmt: ## Format both Terraform stacks
-	@terraform -chdir=terraform/azure fmt -recursive
-	@terraform -chdir=terraform/openstack fmt -recursive
+fmt: ## Format every Terraform stack
+	@for d in terraform/*/; do terraform -chdir=$$d fmt; done
+
+validate: ## Validate every Terraform stack
+	@for d in terraform/*/; do echo "$$d"; terraform -chdir=$$d init -backend=false -input=false >/dev/null && terraform -chdir=$$d validate; done
 
 clean: ## Remove local state, caches and the generated inventory
 	@rm -rf terraform/*/.terraform terraform/*/*.tfstate* ansible/inventory.ini

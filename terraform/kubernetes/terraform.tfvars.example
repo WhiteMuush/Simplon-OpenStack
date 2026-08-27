@@ -1,0 +1,18 @@
+# This stack is applied ON the lab host, not from the workstation: Keystone
+# advertises its catalog on the private address of the VM, so a local plan
+# authenticates and then hangs. `make k8s` writes the real file over there.
+#
+# Kept here so the stack can be read, validated and reviewed like the others.
+
+cloud_name   = "lab"
+node_name    = "k3s-01"
+flavor_name  = "m1.small"
+image_name   = "ubuntu-22.04"
+network_name = "private"
+
+# Written by the playbook on the host, from your own public key.
+public_key_path = "/opt/stack/lab-kubernetes/authorized_key.pub"
+
+# The DevStack floating range, reachable from the lab host only.
+# Never widen this to 0.0.0.0/0: it also guards the Kubernetes API.
+allowed_cidr = "172.24.4.0/24"
