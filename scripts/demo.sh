@@ -56,9 +56,24 @@ for _ in $(seq 30); do
   sleep 5
 done
 
+log "connecting with: ssh -J ${user}@${host} cirros@${fip}"
 ssh -J "${user}@${host}" -o StrictHostKeyChecking=accept-new \
   -o ConnectTimeout=10 "cirros@${fip}" 'hostname; uptime'
 
-step "Dashboard: http://localhost:${HORIZON_PORT}/dashboard  (user admin)"
-step "Reconnect: ssh -J ${user}@${host} cirros@${fip}"
-step "Tear it down with: make demo-clean"
+# Printed last and on its own, so the audience leaves with the commands.
+step "What you can do now"
+cat <<SUMMARY
+
+  Log into the instance
+    ssh -J ${user}@${host} cirros@${fip}
+
+  Open the dashboard, user admin, password from .env
+    http://localhost:${HORIZON_PORT}/dashboard
+
+  Log into the lab host itself
+    make connect
+
+  Remove what this demo created
+    make demo-clean
+
+SUMMARY
