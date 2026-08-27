@@ -32,22 +32,28 @@ fip="$(in_stack 'terraform output -raw floating_ip' | tr -d '[:space:]')"
 [[ -n "$fip" ]] || die "no floating IP in the Terraform state"
 
 step "3. Waiting for k3s"
+# The node holds the workstation public key, so the jump has to start here:
+# the lab host has no private key of its own.
+node_ssh() {
+  ssh -J "${user}@${host}" -o StrictHostKeyChecking=accept-new \
+    -o ConnectTimeout=10 "ubuntu@${fip}" "$1"
+}
+
 # cloud-init boots the node, then pulls and starts k3s. Several minutes on a
 # 1 vCPU flavor, so this polls rather than failing on the first refusal.
 for _ in $(seq 60); do
-  if on_host "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes ubuntu@${fip} \"sudo test -f /etc/rancher/k3s/k3s.yaml\"" 2>/dev/null; then
+  if node_ssh 'test -f /etc/rancher/k3s/k3s.yaml' 2>/dev/null; then
     break
   fi
   sleep 10
 done
-on_host "ssh -o StrictHostKeyChecking=no ubuntu@${fip} 'sudo k3s kubectl get nodes'" \
+node_ssh 'sudo k3s kubectl get nodes' \
   || die "k3s did not come up, check: ssh -J ${user}@${host} ubuntu@${fip}"
 
 step "4. Fetching the kubeconfig"
 # The API answers on the node, so the file is rewritten to point at the local
 # end of an SSH tunnel. k3s already lists 127.0.0.1 in its certificate.
-on_host "ssh -o StrictHostKeyChecking=no ubuntu@${fip} 'sudo cat /etc/rancher/k3s/k3s.yaml'" \
-  | sed "s#server: https://127.0.0.1:6443#server: https://127.0.0.1:6443#" > "$ROOT/kubeconfig"
+node_ssh 'sudo cat /etc/rancher/k3s/k3s.yaml' > "$ROOT/kubeconfig"
 chmod 600 "$ROOT/kubeconfig"
 log "wrote $ROOT/kubeconfig"
 
