@@ -12,12 +12,15 @@ terraform/   describe OpenStack resources once the lab is up
 
 ## Walkthrough
 
-1. `./azure/01-create-vm.sh` creates the host VM
-2. `./azure/02-connect.sh` opens SSH plus a tunnel to Horizon
-3. On the VM, install DevStack using `devstack/local.conf.example`
+Run `make` to list every target.
+
+1. `make vm-create` creates the host VM
+2. `make connect` opens SSH plus a tunnel to Horizon
+3. On the VM, `make check-nested`, then install DevStack using
+   `devstack/local.conf.example`
 4. Fill in `~/.config/openstack/clouds.yaml` on your workstation
-5. `cd terraform && terraform init && terraform apply`
-6. `./azure/99-deallocate.sh` at the end of every session, or billing keeps running
+5. `make tf-init && make tf-apply`
+6. `make vm-stop` at the end of every session, or billing keeps running
 
 ## Requirements
 
