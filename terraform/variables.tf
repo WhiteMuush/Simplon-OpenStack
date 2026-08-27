@@ -1,35 +1,35 @@
 variable "cloud_name" {
-  description = "Entrée à utiliser dans clouds.yaml"
+  description = "Entry to use from clouds.yaml"
   type        = string
   default     = "lab"
 }
 
 variable "instance_name" {
-  description = "Nom de l'instance"
+  description = "Instance name"
   type        = string
   default     = "web-01"
 }
 
 variable "image_name" {
-  description = "Image système. CirrOS pèse 50 Mo, idéal pour tester."
+  description = "System image. CirrOS is 50 MB, ideal for testing."
   type        = string
   default     = "cirros-0.6.2-x86_64-disk"
 }
 
 variable "flavor_name" {
-  description = "Gabarit de l'instance"
+  description = "Instance flavor"
   type        = string
   default     = "m1.tiny"
 }
 
 variable "network_name" {
-  description = "Réseau interne créé par DevStack"
+  description = "Internal network created by DevStack"
   type        = string
   default     = "private"
 }
 
 variable "public_key_path" {
-  description = "Clé publique injectée dans l'instance"
+  description = "Public key injected into the instance"
   type        = string
   default     = "~/.ssh/id_rsa.pub"
 }

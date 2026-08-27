@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Crée la VM hôte du lab DevStack.
+# Create the DevStack host VM.
 set -euo pipefail
 source "$(dirname "$0")/00-vars.sh"
 
-# --security-type Standard est obligatoire : Trusted Launch bloque la
-# virtualisation imbriquée, et Nova en a besoin pour utiliser KVM.
+# --security-type Standard is mandatory: Trusted Launch blocks nested
+# virtualization, which Nova needs to run KVM.
 az vm create \
   --resource-group "$RG" \
   --name "$VM" \
@@ -16,7 +16,7 @@ az vm create \
   --admin-username "$ADMIN" \
   --generate-ssh-keys
 
-# Filet de sécurité si on oublie de désallouer.
+# Safety net in case we forget to deallocate.
 az vm auto-shutdown --resource-group "$RG" --name "$VM" --time 2000
 
 az vm show -d -g "$RG" -n "$VM" --query publicIps -o tsv

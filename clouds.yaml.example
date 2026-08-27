@@ -1,5 +1,5 @@
-# À copier dans ~/.config/openstack/clouds.yaml puis chmod 600
-# Le mot de passe est en clair : ce fichier ne va JAMAIS dans Git.
+# Copy to ~/.config/openstack/clouds.yaml then chmod 600.
+# The password is stored in clear text: this file NEVER goes into Git.
 clouds:
   lab:
     auth:

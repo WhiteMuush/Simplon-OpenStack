@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# À lancer en fin de session. Un simple poweroff continue d'être facturé.
+# Run at the end of every session. A plain poweroff keeps billing running.
 set -euo pipefail
 source "$(dirname "$0")/00-vars.sh"
 

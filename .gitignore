@@ -1,4 +1,4 @@
-# Secrets, jamais dans Git
+# Secrets, never commit
 clouds.yaml
 *.pem
 *.key
@@ -14,7 +14,7 @@ local.conf
 *.tfvars
 !*.tfvars.example
 
-# Divers
+# Misc
 *.log
 
 # IDE

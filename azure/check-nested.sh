@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# À lancer SUR la VM, avant d'installer DevStack.
-# Sans KVM, Nova tombe en émulation logicielle, dix fois plus lente.
+# Run this ON the VM, before installing DevStack.
+# Without KVM, Nova falls back to software emulation, roughly ten times slower.
 set -euo pipefail
 
-echo "Flags processeur : $(grep -cE 'vmx|svm' /proc/cpuinfo)"
+echo "CPU flags: $(grep -cE 'vmx|svm' /proc/cpuinfo)"
 sudo apt-get update -qq && sudo apt-get install -y -qq cpu-checker
 sudo kvm-ok

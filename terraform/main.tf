@@ -5,10 +5,10 @@ resource "openstack_compute_keypair_v2" "lab" {
 
 resource "openstack_networking_secgroup_v2" "web" {
   name        = "web"
-  description = "SSH depuis le bastion, HTTP ouvert"
+  description = "SSH from the lab network, HTTP open"
 }
 
-# Le CIDR est volontairement restreint : jamais 0.0.0.0/0 sur le port 22.
+# Deliberately narrow CIDR: never expose port 22 to 0.0.0.0/0.
 resource "openstack_networking_secgroup_rule_v2" "ssh" {
   direction         = "ingress"
   ethertype         = "IPv4"

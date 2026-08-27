@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Variables communes. Sourcé par les autres scripts.
+# Shared variables, sourced by the other scripts.
 
 export RG="mpetitRG"
 export LOC="francecentral"

@@ -1,6 +1,6 @@
-# À copier sur la VM dans /opt/stack/devstack/local.conf
-# HOST_IP doit être l'adresse PRIVEE de la VM, donnée par : ip -br addr
-# Sur Azure, jamais l'adresse publique : elle n'existe pas sur l'interface.
+# Copy this to /opt/stack/devstack/local.conf on the VM.
+# HOST_IP must be the PRIVATE address of the VM, from: ip -br addr
+# On Azure never use the public address: it does not exist on the interface.
 
 [[local|localrc]]
 ADMIN_PASSWORD=labpassword
@@ -10,15 +10,15 @@ SERVICE_PASSWORD=$ADMIN_PASSWORD
 
 HOST_IP=10.0.0.4
 
-# Sur une VM cloud, le réseau flottant reste interne : l'hébergeur ne route
-# pas des adresses arbitraires. On garde la plage par défaut de DevStack.
+# On a cloud VM the floating network stays internal: the provider will not
+# route arbitrary addresses. Keep the DevStack default range.
 FLOATING_RANGE=172.24.4.0/24
 
-# Suite de tests très longue et inutile pour un lab.
+# Very long test suite, useless for a lab.
 disable_service tempest
 disable_service swift
 
-# À décommenter seulement si kvm-ok répond non.
+# Uncomment only if kvm-ok says KVM cannot be used.
 #LIBVIRT_TYPE=qemu
 
 LOGFILE=/opt/stack/logs/stack.sh.log

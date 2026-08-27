@@ -9,7 +9,7 @@ terraform {
   }
 }
 
-# Lit ~/.config/openstack/clouds.yaml, aucun secret dans le code.
+# Reads ~/.config/openstack/clouds.yaml, so no secret ends up in the code.
 provider "openstack" {
   cloud = var.cloud_name
 }
