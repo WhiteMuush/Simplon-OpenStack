@@ -35,14 +35,15 @@
 
     # The allowed sizes top out at 8 GB, which is DevStack's floor. Without
     # swap, stack.sh gets killed by the OOM reaper partway through.
+    # One task, not a loop: `creates` would skip chmod and mkswap as soon as
+    # fallocate had made the file.
     - name: Create a swap file
-      ansible.builtin.command:
-        cmd: "{{ item }}"
+      ansible.builtin.shell: |
+        fallocate -l 4G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+      args:
         creates: /swapfile
-      loop:
-        - fallocate -l 4G /swapfile
-        - chmod 600 /swapfile
-        - mkswap /swapfile
 
     - name: Enable swap
       ansible.builtin.command:
