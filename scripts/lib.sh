@@ -36,8 +36,12 @@ require_cmd() {
   (( ${#missing[@]} == 0 )) || die "not installed: ${missing[*]}"
 }
 
+# Reads from /dev/tty, not stdin: make swallows stdin, so a plain `read` would
+# get an empty answer and silently abort.
 confirm() {
   [[ "${YES:-}" == "1" ]] && return 0
-  read -r -p "$1 [y/N] " answer
+  [[ -r /dev/tty ]] || die "no terminal to ask on, rerun with YES=1"
+  local answer
+  read -r -p "$1 [y/N] " answer < /dev/tty
   [[ "$answer" == "y" || "$answer" == "Y" ]]
 }

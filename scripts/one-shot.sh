@@ -9,9 +9,11 @@ here="$(dirname "$0")"
 
 load_env
 log "target: VM $VM in $RG"
-confirm "This creates billable Azure resources. Continue?" || die "aborted"
 
+# Checks first, so a wrong CIDR or a missing tool fails before the prompt.
 "$here/preflight.sh"
+
+confirm "This creates billable Azure resources. Continue?" || die "aborted"
 "$here/host-apply.sh"
 "$here/inventory.sh"
 "$here/devstack-install.sh"
