@@ -6,7 +6,7 @@ SHELL := /bin/bash
 S := ./scripts
 
 .PHONY: help env one-shot preflight host inventory install reset connect \
-        status start stop os-apply os-destroy destroy fmt clean
+        status start stop demo demo-clean tunnel os-apply os-destroy destroy fmt clean
 
 help: ## Show this help
 	@grep -hE '^[a-z0-9-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -50,6 +50,15 @@ stop: ## Deallocate the host VM, run this at the end of every session
 	@$(S)/power.sh stop
 
 ## OpenStack resources
+
+demo: ## Guided run for a presentation, ends with a live instance
+	@$(S)/demo.sh
+
+demo-clean: ## Remove what the demo created
+	@$(S)/openstack-destroy.sh
+
+tunnel: ## Open the SSH tunnel to the lab API in the background
+	@$(S)/tunnel.sh
 
 os-apply: ## Create the instances, networks and security groups
 	@$(S)/openstack-apply.sh
